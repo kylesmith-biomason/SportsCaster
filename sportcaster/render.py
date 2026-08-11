@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PIL import Image, ImageDraw, ImageFont
 
+from .config import ROOT
 from .scores import BoardSnapshot, TeamBoard, format_start_time
 
 # Waveshare 7.3" 7-color (F) palette — RGB values matching epd7in3f
@@ -16,6 +17,9 @@ ORANGE = (255, 128, 0)
 WIDTH = 800
 HEIGHT = 480
 HALF = HEIGHT // 2
+HEADER_H = 48
+LOGO_MAX_H = 40
+LOGOS_DIR = ROOT / "assets" / "logos"
 
 ACCENT_COLORS = {
     "blue": BLUE,
@@ -60,6 +64,29 @@ def _fit_font(draw: ImageDraw.ImageDraw, text: str, max_width: int, preferred: i
     return _font(14)
 
 
+def _load_team_logo(team_id: str) -> Image.Image | None:
+    """Load assets/logos/{team_id}.png (also tries .jpg / .webp)."""
+    for ext in (".png", ".PNG", ".jpg", ".jpeg", ".webp"):
+        path = LOGOS_DIR / f"{team_id}{ext}"
+        if path.is_file():
+            try:
+                return Image.open(path).convert("RGBA")
+            except OSError:
+                return None
+    return None
+
+
+def _paste_header_logo(img: Image.Image, logo: Image.Image, top: int) -> int:
+    """Paste logo on the right of the header; return width reserved (incl. padding)."""
+    h = min(LOGO_MAX_H, HEADER_H - 4)
+    w = max(1, int(logo.width * (h / logo.height)))
+    logo = logo.resize((w, h), Image.Resampling.LANCZOS)
+    x = WIDTH - w - 12
+    y = top + (HEADER_H - h) // 2
+    img.paste(logo, (x, y), logo)
+    return w + 24
+
+
 def _draw_team_panel(
     img: Image.Image,
     board: TeamBoard,
@@ -70,18 +97,29 @@ def _draw_team_panel(
     draw = ImageDraw.Draw(img)
     accent = ACCENT_COLORS.get(board.accent, BLUE)
     # Header bar
-    draw.rectangle((0, top, WIDTH, top + 48), fill=accent)
+    draw.rectangle((0, top, WIDTH, top + HEADER_H), fill=accent)
     title_font = _font(28)
     title = board.team_name.upper()
     # Use white text on colored bars; black on yellow/orange for contrast
     title_fill = BLACK if board.accent in ("yellow", "orange") else WHITE
     if board.accent == "black":
         # Black bar: use blue underline strip + white text already
-        draw.rectangle((0, top, WIDTH, top + 48), fill=BLACK)
-        draw.rectangle((0, top + 48, WIDTH, top + 52), fill=BLUE)
+        draw.rectangle((0, top, WIDTH, top + HEADER_H), fill=BLACK)
+        draw.rectangle((0, top + HEADER_H, WIDTH, top + HEADER_H + 4), fill=BLUE)
         title_fill = WHITE
+
+    logo_reserve = 0
+    logo = _load_team_logo(board.team_id)
+    if logo is not None:
+        logo_reserve = _paste_header_logo(img, logo, top)
+
     tw, th = _text_size(draw, title, title_font)
-    draw.text(((WIDTH - tw) // 2, top + (48 - th) // 2 - 2), title, font=title_font, fill=title_fill)
+    # Keep title visually centered, but shift left if a logo occupies the right edge
+    title_x = (WIDTH - tw) // 2
+    if logo_reserve:
+        title_x = min(title_x, WIDTH - logo_reserve - tw - 8)
+        title_x = max(12, title_x)
+    draw.text((title_x, top + (HEADER_H - th) // 2 - 2), title, font=title_font, fill=title_fill)
 
     content_top = top + 60
     pad_x = 28

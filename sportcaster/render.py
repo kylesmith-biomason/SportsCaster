@@ -24,7 +24,7 @@ HEADER_H = 48
 LOGO_LEFT = 340
 LOGO_SCALE = 0.8  # fraction of the available right-hand box
 OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
-OPP_LOGO_SIZE_NFL = int(OPP_LOGO_SIZE * 1.15 * 1.15)  # NFL logos ~32% larger than MLB
+OPP_LOGO_SIZE_NFL = int(OPP_LOGO_SIZE * 1.15 * 1.15 * 1.20)  # NFL logos larger than MLB
 # Fit score text against this probe so MLB/NFL panels share one visual size
 # (NFL scores are often two digits and would otherwise shrink more).
 SCORE_WIDTH_PROBE = "WWW 99 - WWW 99"

@@ -20,6 +20,7 @@ HALF = HEIGHT // 2
 HEADER_H = 48
 # Score text stays left of this; logos scale to fill the right box.
 LOGO_LEFT = 340
+LOGO_SCALE = 0.8  # fraction of the available right-hand box
 LOGOS_DIR = ROOT / "assets" / "logos"
 
 ACCENT_COLORS = {
@@ -85,12 +86,13 @@ def _paste_content_logo(
     img: Image.Image,
     logo: Image.Image,
     box: tuple[int, int, int, int],
+    scale_factor: float = LOGO_SCALE,
 ) -> None:
     """Scale logo to fill as much of box (left, top, right, bottom) as possible."""
     left, top, right, bottom = box
     max_w = max(1, right - left)
     max_h = max(1, bottom - top)
-    scale = min(max_w / logo.width, max_h / logo.height)
+    scale = min(max_w / logo.width, max_h / logo.height) * scale_factor
     w = max(1, int(logo.width * scale))
     h = max(1, int(logo.height * scale))
     logo = logo.resize((w, h), Image.Resampling.LANCZOS)
@@ -112,38 +114,29 @@ def _draw_team_panel(
     title = board.team_name.upper()
     # Use white text on colored bars; black on yellow/orange for contrast
     title_fill = BLACK if board.accent in ("yellow", "orange") else WHITE
+    bar_fill = BLACK if board.accent == "black" else accent
     if board.accent == "black":
         title_fill = WHITE
+
+    # Full-width team name banner
+    draw.rectangle((0, top, WIDTH, top + HEADER_H), fill=bar_fill)
+    if board.accent == "black":
+        draw.rectangle((0, top + HEADER_H, WIDTH, top + HEADER_H + 4), fill=BLUE)
+    tw, th = _text_size(draw, title, title_font)
+    draw.text(((WIDTH - tw) // 2, top + (HEADER_H - th) // 2 - 2), title, font=title_font, fill=title_fill)
 
     logo = _load_team_logo(board.team_id)
     pad_x = 28
     content_top = top + 60
 
     if logo is not None:
-        # Title bar only on the left so the logo can use the full half-panel height
-        bar_right = LOGO_LEFT - 12
-        bar_fill = BLACK if board.accent == "black" else accent
-        draw.rectangle((0, top, bar_right, top + HEADER_H), fill=bar_fill)
-        if board.accent == "black":
-            draw.rectangle((0, top + HEADER_H, bar_right, top + HEADER_H + 4), fill=BLUE)
-        title_font = _fit_font(draw, title, bar_right - pad_x * 2, 28)
-        tw, th = _text_size(draw, title, title_font)
-        title_x = max(8, (bar_right - tw) // 2)
-        draw.text((title_x, top + (HEADER_H - th) // 2 - 2), title, font=title_font, fill=title_fill)
-
         max_w = LOGO_LEFT - pad_x - 8
         _paste_content_logo(
             img,
             logo,
-            (LOGO_LEFT, top + 4, WIDTH - 8, top + height - 4),
+            (LOGO_LEFT, top + HEADER_H + 6, WIDTH - 8, top + height - 6),
         )
     else:
-        bar_fill = BLACK if board.accent == "black" else accent
-        draw.rectangle((0, top, WIDTH, top + HEADER_H), fill=bar_fill)
-        if board.accent == "black":
-            draw.rectangle((0, top + HEADER_H, WIDTH, top + HEADER_H + 4), fill=BLUE)
-        tw, th = _text_size(draw, title, title_font)
-        draw.text(((WIDTH - tw) // 2, top + (HEADER_H - th) // 2 - 2), title, font=title_font, fill=title_fill)
         max_w = WIDTH - pad_x * 2
 
     current = board.current_or_last

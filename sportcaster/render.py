@@ -22,6 +22,7 @@ HEADER_H = 48
 LOGO_LEFT = 340
 LOGO_SCALE = 0.8  # fraction of the available right-hand box
 OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
+OPP_LOGO_SIZE_NFL = int(OPP_LOGO_SIZE * 1.15)  # NFL logos slightly larger
 LOGOS_DIR = ROOT / "assets" / "logos"
 MLB_LOGOS_DIR = ROOT / "assets" / "mlb_logos"
 NFL_LOGOS_DIR = ROOT / "assets" / "nfl_logos"
@@ -241,10 +242,12 @@ def _draw_matchup_with_logo(
 ) -> int:
     """Draw matchup text with opponent logo beside it; return total height used."""
     opp_logo = _load_opponent_logo(opponent_abbr, sport)
+    sport_key = (sport or "").strip().lower()
+    logo_size = OPP_LOGO_SIZE_NFL if sport_key in ("football", "nfl") else OPP_LOGO_SIZE
     logo_w = 0
     gap = 10
     if opp_logo is not None:
-        logo_w = OPP_LOGO_SIZE + gap
+        logo_w = logo_size + gap
 
     text_max = max(40, max_w - logo_w)
     font = _fit_font(draw, matchup, text_max, preferred_font)
@@ -253,7 +256,7 @@ def _draw_matchup_with_logo(
 
     row_h = th
     if opp_logo is not None:
-        scale = min(OPP_LOGO_SIZE / opp_logo.width, OPP_LOGO_SIZE / opp_logo.height)
+        scale = min(logo_size / opp_logo.width, logo_size / opp_logo.height)
         rw = max(1, int(opp_logo.width * scale))
         rh = max(1, int(opp_logo.height * scale))
         scaled = opp_logo.resize((rw, rh), Image.Resampling.LANCZOS)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 from .config import ROOT
@@ -127,6 +129,25 @@ ACCENT_COLORS = {
 
 
 def _font(size: int) -> ImageFont.ImageFont:
+    # Prefer Nunito Sans (Raspberry Pi OS ships a variable font under nunito-sans/)
+    nunito_dir = Path("/usr/share/fonts/truetype/nunito-sans")
+    if nunito_dir.is_dir():
+        for path in sorted(nunito_dir.glob("NunitoSans-VariableFont*.ttf")):
+            try:
+                font = ImageFont.truetype(str(path), size=size)
+                try:
+                    font.set_variation_by_name("Bold")
+                except (OSError, ValueError):
+                    pass
+                return font
+            except OSError:
+                continue
+        for path in sorted(nunito_dir.glob("NunitoSans*Bold*.ttf")):
+            try:
+                return ImageFont.truetype(str(path), size=size)
+            except OSError:
+                continue
+
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",

@@ -1,0 +1,33 @@
+timezone: America/Chicago
+
+display:
+  driver: epd7in3f
+  mode: auto  # auto | hardware | mock
+  mock_path: out/preview.png
+  state_path: out/last_state.json
+
+poll:
+  live_seconds: 60
+  idle_seconds: 900
+  error_backoff_seconds: 120
+
+espn:
+  base_url: https://site.web.api.espn.com/apis/site/v2/sports
+
+teams:
+  - id: cubs
+    name: Chicago Cubs
+    short_name: Cubs
+    abbreviation: CHC
+    sport: baseball
+    league: mlb
+    espn_id: "16"
+    accent: blue
+  - id: panthers
+    name: Carolina Panthers
+    short_name: Panthers
+    abbreviation: CAR
+    sport: football
+    league: nfl
+    espn_id: "29"
+    accent: black

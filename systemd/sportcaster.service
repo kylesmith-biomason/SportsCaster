@@ -1,0 +1,16 @@
+[Unit]
+Description=SportCaster e-paper scoreboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/SportCaster
+ExecStart=/home/pi/SportCaster/.venv/bin/python -m sportcaster
+Restart=on-failure
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

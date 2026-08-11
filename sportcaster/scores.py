@@ -65,7 +65,7 @@ class GameState:
     def score_line(self, our_short: str) -> str:
         ours = self.our_side.score if self.our_side.score is not None else "-"
         theirs = self.opponent.score if self.opponent.score is not None else "-"
-        return f"{our_short} {ours}  {self.opponent.abbreviation} {theirs}"
+        return f"{our_short} {ours} - {self.opponent.abbreviation} {theirs}"
 
     def result_line(self, our_short: str) -> str:
         if self.our_side.score is None or self.opponent.score is None:

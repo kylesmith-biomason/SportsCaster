@@ -27,7 +27,7 @@ OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
 OPP_LOGO_SIZE_NFL = int(OPP_LOGO_SIZE * 1.15 * 1.15)  # NFL logos ~32% larger than MLB
 # Fit score text against this probe so MLB/NFL panels share one visual size
 # (NFL scores are often two digits and would otherwise shrink more).
-SCORE_WIDTH_PROBE = "WWW 99  WWW 99"
+SCORE_WIDTH_PROBE = "WWW 99 - WWW 99"
 SCORE_FONT_LIVE = 64
 SCORE_FONT_FINAL = 52
 LOGOS_DIR = ROOT / "assets" / "logos"

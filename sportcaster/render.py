@@ -345,24 +345,28 @@ def _draw_team_panel(
 
         status = f"LIVE · {current.short_detail or current.detail}"
         status_font = _fit_font(draw, status, max_w, 26)
-        draw.text((pad_x, content_top + 10 + sh + 16), status, font=status_font, fill=RED)
+        status_y = content_top + 10 + sh + 16
+        draw.text((pad_x, status_y), status, font=status_font, fill=RED)
+        _, status_h = _text_size(draw, status, status_font)
 
         if nxt and nxt.event_id != current.event_id:
-            next_line = f"Next: {nxt.matchup_label()}"
-            time_line = format_start_time(nxt.start_time, timezone)
-            _draw_matchup_with_logo(
+            # Same next-game style as Final state (matchup + logo, then date)
+            matchup = nxt.matchup_label()
+            when = format_start_time(nxt.start_time, timezone)
+            matchup_y = status_y + status_h + 24
+            mh = _draw_matchup_with_logo(
                 img,
                 draw,
-                next_line,
+                matchup,
                 nxt.opponent.abbreviation,
                 board.sport,
                 pad_x,
-                top + height - 56,
+                matchup_y,
                 max_w,
-                20,
-                BLACK,
+                36,
+                BLUE,
             )
-            draw.text((pad_x, top + height - 32), time_line, font=_font(20), fill=BLACK)
+            draw.text((pad_x, matchup_y + mh + 8), when, font=_font(24), fill=BLACK)
 
     elif current and current.is_final and (nxt is None or nxt.event_id != current.event_id):
         # Final result large, next game below

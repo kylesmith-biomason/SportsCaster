@@ -25,6 +25,11 @@ LOGO_LEFT = 340
 LOGO_SCALE = 0.8  # fraction of the available right-hand box
 OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
 OPP_LOGO_SIZE_NFL = int(OPP_LOGO_SIZE * 1.15 * 1.15)  # NFL logos ~32% larger than MLB
+# Fit score text against this probe so MLB/NFL panels share one visual size
+# (NFL scores are often two digits and would otherwise shrink more).
+SCORE_WIDTH_PROBE = "WWW 99  WWW 99"
+SCORE_FONT_LIVE = 64
+SCORE_FONT_FINAL = 52
 LOGOS_DIR = ROOT / "assets" / "logos"
 MLB_LOGOS_DIR = ROOT / "assets" / "mlb_logos"
 NFL_LOGOS_DIR = ROOT / "assets" / "nfl_logos"
@@ -332,7 +337,7 @@ def _draw_team_panel(
     # Primary content (left column when logo is present)
     if current and current.is_live:
         score = current.score_line(board.abbreviation)
-        score_font = _fit_font(draw, score, max_w, 64)
+        score_font = _fit_font(draw, SCORE_WIDTH_PROBE, max_w, SCORE_FONT_LIVE)
         _, sh = _text_size(draw, score, score_font)
         draw.text((pad_x, content_top + 10), score, font=score_font, fill=BLACK)
 
@@ -360,7 +365,7 @@ def _draw_team_panel(
     elif current and current.is_final and (nxt is None or nxt.event_id != current.event_id):
         # Final result large, next game below
         score = current.score_line(board.abbreviation)
-        score_font = _fit_font(draw, score, max_w, 52)
+        score_font = _fit_font(draw, SCORE_WIDTH_PROBE, max_w, SCORE_FONT_FINAL)
         _, sh = _text_size(draw, score, score_font)
         draw.text((pad_x, content_top), score, font=score_font, fill=BLACK)
         draw.text((pad_x, content_top + sh + 8), "FINAL", font=_font(24), fill=BLACK)

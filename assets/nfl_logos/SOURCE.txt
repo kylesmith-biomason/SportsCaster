@@ -1,0 +1,4 @@
+NFL team logos sourced from:
+https://github.com/gdight7127/team_logos
+
+Filenames lowercased to match ESPN abbreviations (was.png, buf.png, etc.).

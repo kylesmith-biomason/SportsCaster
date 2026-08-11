@@ -24,6 +24,7 @@ LOGO_SCALE = 0.8  # fraction of the available right-hand box
 OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
 LOGOS_DIR = ROOT / "assets" / "logos"
 MLB_LOGOS_DIR = ROOT / "assets" / "mlb_logos"
+NFL_LOGOS_DIR = ROOT / "assets" / "nfl_logos"
 
 # Map ESPN-style abbreviations → files in assets/mlb_logos/{slug}.png
 _MLB_LOGO_ALIASES = {
@@ -69,6 +70,49 @@ _MLB_LOGO_ALIASES = {
     "wsh": "wsh",
     "was": "wsh",
     "washington": "wsh",
+}
+
+# Map ESPN-style abbreviations → files in assets/nfl_logos/{slug}.png
+_NFL_LOGO_ALIASES = {
+    "ari": "ari",
+    "atl": "atl",
+    "bal": "bal",
+    "buf": "buf",
+    "car": "car",
+    "chi": "chi",
+    "cin": "cin",
+    "cle": "cle",
+    "dal": "dal",
+    "den": "den",
+    "det": "det",
+    "gb": "gb",
+    "gnb": "gb",
+    "hou": "hou",
+    "ind": "ind",
+    "jax": "jax",
+    "jac": "jax",
+    "kc": "kc",
+    "lac": "lac",
+    "sd": "lac",
+    "lar": "lar",
+    "stl": "lar",
+    "lv": "lv",
+    "oak": "lv",
+    "mia": "mia",
+    "min": "min",
+    "ne": "ne",
+    "no": "no",
+    "nyg": "nyg",
+    "nyj": "nyj",
+    "phi": "phi",
+    "pit": "pit",
+    "sea": "sea",
+    "sf": "sf",
+    "tb": "tb",
+    "ten": "ten",
+    "was": "was",
+    "wsh": "was",
+    "washington": "was",
 }
 
 ACCENT_COLORS = {
@@ -130,11 +174,15 @@ def _load_team_logo(team_id: str) -> Image.Image | None:
     return None
 
 
-def _load_mlb_logo(abbreviation: str) -> Image.Image | None:
-    """Load an MLB opponent logo by ESPN abbreviation from assets/mlb_logos/."""
+def _load_league_logo(
+    abbreviation: str,
+    logos_dir,
+    aliases: dict[str, str],
+) -> Image.Image | None:
+    """Load a league opponent logo by ESPN abbreviation from a logos directory."""
     key = abbreviation.strip().lower()
-    slug = _MLB_LOGO_ALIASES.get(key, key)
-    path = MLB_LOGOS_DIR / f"{slug}.png"
+    slug = aliases.get(key, key)
+    path = logos_dir / f"{slug}.png"
     if not path.is_file():
         return None
     try:
@@ -145,6 +193,19 @@ def _load_mlb_logo(abbreviation: str) -> Image.Image | None:
     if bbox:
         logo = logo.crop(bbox)
     return logo
+
+
+def _load_opponent_logo(abbreviation: str, sport: str) -> Image.Image | None:
+    """Load MLB or NFL opponent logo based on the followed team's sport."""
+    sport_key = (sport or "").strip().lower()
+    if sport_key in ("baseball", "mlb"):
+        return _load_league_logo(abbreviation, MLB_LOGOS_DIR, _MLB_LOGO_ALIASES)
+    if sport_key in ("football", "nfl"):
+        return _load_league_logo(abbreviation, NFL_LOGOS_DIR, _NFL_LOGO_ALIASES)
+    # Fallback: try both (NFL first only if abbr looks exclusive — prefer MLB then NFL)
+    return _load_league_logo(abbreviation, MLB_LOGOS_DIR, _MLB_LOGO_ALIASES) or _load_league_logo(
+        abbreviation, NFL_LOGOS_DIR, _NFL_LOGO_ALIASES
+    )
 
 
 def _paste_content_logo(
@@ -171,14 +232,15 @@ def _draw_matchup_with_logo(
     draw: ImageDraw.ImageDraw,
     matchup: str,
     opponent_abbr: str,
+    sport: str,
     x: int,
     y: int,
     max_w: int,
     preferred_font: int,
     fill: tuple[int, int, int],
 ) -> int:
-    """Draw matchup text with MLB opponent logo beside it; return total height used."""
-    opp_logo = _load_mlb_logo(opponent_abbr)
+    """Draw matchup text with opponent logo beside it; return total height used."""
+    opp_logo = _load_opponent_logo(opponent_abbr, sport)
     logo_w = 0
     gap = 10
     if opp_logo is not None:
@@ -262,6 +324,7 @@ def _draw_team_panel(
                 draw,
                 next_line,
                 nxt.opponent.abbreviation,
+                board.sport,
                 pad_x,
                 top + height - 56,
                 max_w,
@@ -287,6 +350,7 @@ def _draw_team_panel(
                 draw,
                 matchup,
                 nxt.opponent.abbreviation,
+                board.sport,
                 pad_x,
                 matchup_y,
                 max_w,
@@ -315,6 +379,7 @@ def _draw_team_panel(
                 draw,
                 matchup,
                 focus.opponent.abbreviation,
+                board.sport,
                 pad_x,
                 content_top + 8,
                 max_w,

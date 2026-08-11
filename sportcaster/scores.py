@@ -104,6 +104,7 @@ class TeamBoard:
     short_name: str
     abbreviation: str
     accent: str
+    sport: str
     current_or_last: GameState | None
     next_game: GameState | None
 
@@ -127,6 +128,7 @@ class TeamBoard:
             "short_name": self.short_name,
             "abbreviation": self.abbreviation,
             "accent": self.accent,
+            "sport": self.sport,
             "current_or_last": (
                 self.current_or_last.to_dict() if self.current_or_last else None
             ),
@@ -143,6 +145,7 @@ class TeamBoard:
             short_name=str(data["short_name"]),
             abbreviation=str(data["abbreviation"]),
             accent=str(data.get("accent") or "blue"),
+            sport=str(data.get("sport") or ""),
             current_or_last=GameState.from_dict(cur) if cur else None,
             next_game=GameState.from_dict(nxt) if nxt else None,
         )
@@ -386,6 +389,7 @@ def fetch_team_board(cfg: AppConfig, team: TeamConfig) -> TeamBoard:
         short_name=team.short_name,
         abbreviation=team.abbreviation,
         accent=team.accent,
+        sport=team.sport,
         current_or_last=current_or_last,
         next_game=next_game,
     )

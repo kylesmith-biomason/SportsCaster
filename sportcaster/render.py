@@ -314,6 +314,8 @@ def _draw_team_panel(
     draw.rectangle((0, top, WIDTH, top + HEADER_H), fill=bar_fill)
     if board.accent == "black":
         draw.rectangle((0, top + HEADER_H, WIDTH, top + HEADER_H + 4), fill=BLUE)
+    elif board.accent == "blue":
+        draw.rectangle((0, top + HEADER_H, WIDTH, top + HEADER_H + 4), fill=RED)
     tw, th = _text_size(draw, title, title_font)
     draw.text(((WIDTH - tw) // 2, top + (HEADER_H - th) // 2 - 2), title, font=title_font, fill=title_fill)
 

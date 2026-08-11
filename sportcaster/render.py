@@ -21,7 +21,55 @@ HEADER_H = 48
 # Score text stays left of this; logos scale to fill the right box.
 LOGO_LEFT = 340
 LOGO_SCALE = 0.8  # fraction of the available right-hand box
+OPP_LOGO_SIZE = 48  # opponent logo beside matchup text
 LOGOS_DIR = ROOT / "assets" / "logos"
+MLB_LOGOS_DIR = ROOT / "assets" / "mlb_logos"
+
+# Map ESPN-style abbreviations → files in assets/mlb_logos/{slug}.png
+_MLB_LOGO_ALIASES = {
+    "ari": "ari",
+    "az": "ari",
+    "atl": "atl",
+    "bal": "bal",
+    "bos": "bos",
+    "chc": "chc",
+    "cin": "cin",
+    "cle": "cle",
+    "col": "col",
+    "cws": "cws",
+    "chw": "cws",
+    "det": "det",
+    "hou": "hou",
+    "kc": "kc",
+    "kcr": "kc",
+    "laa": "laa",
+    "ana": "laa",
+    "lad": "lad",
+    "la": "lad",
+    "mia": "mia",
+    "fla": "mia",
+    "mil": "mil",
+    "min": "min",
+    "nym": "nym",
+    "nyy": "nyy",
+    "oak": "oak",
+    "ath": "oak",
+    "phi": "phi",
+    "pit": "pit",
+    "sd": "sd",
+    "sdp": "sd",
+    "sea": "sea",
+    "sf": "sf",
+    "sfg": "sf",
+    "stl": "stl",
+    "tb": "tb",
+    "tbr": "tb",
+    "tex": "tex",
+    "tor": "tor",
+    "wsh": "wsh",
+    "was": "wsh",
+    "washington": "wsh",
+}
 
 ACCENT_COLORS = {
     "blue": BLUE,
@@ -82,6 +130,23 @@ def _load_team_logo(team_id: str) -> Image.Image | None:
     return None
 
 
+def _load_mlb_logo(abbreviation: str) -> Image.Image | None:
+    """Load an MLB opponent logo by ESPN abbreviation from assets/mlb_logos/."""
+    key = abbreviation.strip().lower()
+    slug = _MLB_LOGO_ALIASES.get(key, key)
+    path = MLB_LOGOS_DIR / f"{slug}.png"
+    if not path.is_file():
+        return None
+    try:
+        logo = Image.open(path).convert("RGBA")
+    except OSError:
+        return None
+    bbox = logo.getbbox()
+    if bbox:
+        logo = logo.crop(bbox)
+    return logo
+
+
 def _paste_content_logo(
     img: Image.Image,
     logo: Image.Image,
@@ -99,6 +164,42 @@ def _paste_content_logo(
     x = left + (max_w - w) // 2
     y = top + (max_h - h) // 2
     img.paste(logo, (x, y), logo)
+
+
+def _draw_matchup_with_logo(
+    img: Image.Image,
+    draw: ImageDraw.ImageDraw,
+    matchup: str,
+    opponent_abbr: str,
+    x: int,
+    y: int,
+    max_w: int,
+    preferred_font: int,
+    fill: tuple[int, int, int],
+) -> int:
+    """Draw matchup text with MLB opponent logo beside it; return total height used."""
+    opp_logo = _load_mlb_logo(opponent_abbr)
+    logo_w = 0
+    gap = 10
+    if opp_logo is not None:
+        logo_w = OPP_LOGO_SIZE + gap
+
+    text_max = max(40, max_w - logo_w)
+    font = _fit_font(draw, matchup, text_max, preferred_font)
+    tw, th = _text_size(draw, matchup, font)
+    draw.text((x, y), matchup, font=font, fill=fill)
+
+    row_h = th
+    if opp_logo is not None:
+        scale = min(OPP_LOGO_SIZE / opp_logo.width, OPP_LOGO_SIZE / opp_logo.height)
+        rw = max(1, int(opp_logo.width * scale))
+        rh = max(1, int(opp_logo.height * scale))
+        scaled = opp_logo.resize((rw, rh), Image.Resampling.LANCZOS)
+        lx = x + tw + gap
+        ly = y + (max(th, rh) - rh) // 2
+        img.paste(scaled, (lx, ly), scaled)
+        row_h = max(th, rh)
+    return row_h
 
 
 def _draw_team_panel(
@@ -156,9 +257,18 @@ def _draw_team_panel(
         if nxt and nxt.event_id != current.event_id:
             next_line = f"Next: {nxt.matchup_label()}"
             time_line = format_start_time(nxt.start_time, timezone)
-            small = _fit_font(draw, next_line, max_w, 20)
-            draw.text((pad_x, top + height - 56), next_line, font=small, fill=BLACK)
-            draw.text((pad_x, top + height - 32), time_line, font=small, fill=BLACK)
+            _draw_matchup_with_logo(
+                img,
+                draw,
+                next_line,
+                nxt.opponent.abbreviation,
+                pad_x,
+                top + height - 56,
+                max_w,
+                20,
+                BLACK,
+            )
+            draw.text((pad_x, top + height - 32), time_line, font=_font(20), fill=BLACK)
 
     elif current and current.is_final and (nxt is None or nxt.event_id != current.event_id):
         # Final result large, next game below
@@ -171,9 +281,19 @@ def _draw_team_panel(
         if nxt:
             matchup = nxt.matchup_label()
             when = format_start_time(nxt.start_time, timezone)
-            m_font = _fit_font(draw, matchup, max_w, 36)
-            draw.text((pad_x, content_top + sh + 48), matchup, font=m_font, fill=BLUE)
-            draw.text((pad_x, content_top + sh + 92), when, font=_font(24), fill=BLACK)
+            matchup_y = content_top + sh + 48
+            mh = _draw_matchup_with_logo(
+                img,
+                draw,
+                matchup,
+                nxt.opponent.abbreviation,
+                pad_x,
+                matchup_y,
+                max_w,
+                36,
+                BLUE,
+            )
+            draw.text((pad_x, matchup_y + mh + 8), when, font=_font(24), fill=BLACK)
         else:
             draw.text(
                 (pad_x, content_top + sh + 48),
@@ -190,10 +310,17 @@ def _draw_team_panel(
         else:
             matchup = focus.matchup_label()
             when = format_start_time(focus.start_time, timezone)
-            m_font = _fit_font(draw, matchup, max_w, 48)
-            _, mh = _text_size(draw, matchup, m_font)
-            draw.text((pad_x, content_top + 8), matchup, font=m_font, fill=BLUE)
-
+            mh = _draw_matchup_with_logo(
+                img,
+                draw,
+                matchup,
+                focus.opponent.abbreviation,
+                pad_x,
+                content_top + 8,
+                max_w,
+                48,
+                BLUE,
+            )
             t_font = _fit_font(draw, when, max_w, 32)
             draw.text((pad_x, content_top + 8 + mh + 18), when, font=t_font, fill=BLACK)
 

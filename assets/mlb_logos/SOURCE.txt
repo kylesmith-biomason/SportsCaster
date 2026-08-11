@@ -1,0 +1,4 @@
+MLB team logos sourced from:
+https://github.com/MLBAMGames/mlb_teams_logo_svg (light/)
+
+PNG files are 256px rasterizations of the *_l.svg assets for e-paper rendering.

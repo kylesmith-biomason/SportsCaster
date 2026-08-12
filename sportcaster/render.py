@@ -322,13 +322,19 @@ def _draw_team_panel(
     logo = _load_team_logo(board.team_id)
     pad_x = 28
     content_top = top + 60
+    full_page = height >= HEIGHT
 
     if logo is not None:
         max_w = LOGO_LEFT - pad_x - 8
+        logo_box_top = top + HEADER_H + 6
+        # On full-page live, leave the upper text column wider for a larger score
+        if full_page and board.current_or_last and board.current_or_last.is_live:
+            max_w = WIDTH - pad_x - 200
+            logo_box_top = top + HEADER_H + 160
         _paste_content_logo(
             img,
             logo,
-            (LOGO_LEFT, top + HEADER_H + 6, WIDTH - 8, top + height - 6),
+            (LOGO_LEFT, logo_box_top, WIDTH - 8, top + height - 6),
         )
     else:
         max_w = WIDTH - pad_x * 2
@@ -337,25 +343,39 @@ def _draw_team_panel(
     nxt = board.next_game
 
     # Primary content (left column when logo is present)
-    full_page = height >= HEIGHT
     if current and current.is_live:
         score = current.score_line(board.abbreviation)
-        live_pref = 80 if full_page else SCORE_FONT_LIVE
+        live_pref = 110 if full_page else SCORE_FONT_LIVE
         score_font = _fit_font(draw, SCORE_WIDTH_PROBE, max_w, live_pref)
         _, sh = _text_size(draw, score, score_font)
         draw.text((pad_x, content_top + 10), score, font=score_font, fill=BLACK)
 
         status = f"LIVE · {current.short_detail or current.detail}"
-        status_font = _fit_font(draw, status, max_w, 32 if full_page else 26)
+        status_font = _fit_font(draw, status, max_w, 36 if full_page else 26)
         status_y = content_top + 10 + sh + 16
         draw.text((pad_x, status_y), status, font=status_font, fill=RED)
         _, status_h = _text_size(draw, status, status_font)
 
         if nxt and nxt.event_id != current.event_id:
-            # Same next-game style as Final state (matchup + logo, then date)
             matchup = nxt.matchup_label()
             when = format_start_time(nxt.start_time, timezone)
-            matchup_y = status_y + status_h + 24
+            matchup_size = 42 if full_page else 36
+            when_font = _font(28 if full_page else 24)
+            _, wh = _text_size(draw, when, when_font)
+
+            if full_page:
+                # Pin next matchup + date to the bottom of the page
+                sport_key = (board.sport or "").strip().lower()
+                logo_size = (
+                    OPP_LOGO_SIZE_NFL
+                    if sport_key in ("football", "nfl")
+                    else OPP_LOGO_SIZE
+                )
+                row_est = max(matchup_size, logo_size)
+                matchup_y = top + height - 28 - wh - 12 - row_est
+            else:
+                matchup_y = status_y + status_h + 24
+
             mh = _draw_matchup_with_logo(
                 img,
                 draw,
@@ -365,13 +385,13 @@ def _draw_team_panel(
                 pad_x,
                 matchup_y,
                 max_w,
-                42 if full_page else 36,
+                matchup_size,
                 BLUE,
             )
             draw.text(
                 (pad_x, matchup_y + mh + 8),
                 when,
-                font=_font(28 if full_page else 24),
+                font=when_font,
                 fill=BLACK,
             )
 

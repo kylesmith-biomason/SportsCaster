@@ -337,14 +337,16 @@ def _draw_team_panel(
     nxt = board.next_game
 
     # Primary content (left column when logo is present)
+    full_page = height >= HEIGHT
     if current and current.is_live:
         score = current.score_line(board.abbreviation)
-        score_font = _fit_font(draw, SCORE_WIDTH_PROBE, max_w, SCORE_FONT_LIVE)
+        live_pref = 80 if full_page else SCORE_FONT_LIVE
+        score_font = _fit_font(draw, SCORE_WIDTH_PROBE, max_w, live_pref)
         _, sh = _text_size(draw, score, score_font)
         draw.text((pad_x, content_top + 10), score, font=score_font, fill=BLACK)
 
         status = f"LIVE · {current.short_detail or current.detail}"
-        status_font = _fit_font(draw, status, max_w, 26)
+        status_font = _fit_font(draw, status, max_w, 32 if full_page else 26)
         status_y = content_top + 10 + sh + 16
         draw.text((pad_x, status_y), status, font=status_font, fill=RED)
         _, status_h = _text_size(draw, status, status_font)
@@ -363,10 +365,15 @@ def _draw_team_panel(
                 pad_x,
                 matchup_y,
                 max_w,
-                36,
+                42 if full_page else 36,
                 BLUE,
             )
-            draw.text((pad_x, matchup_y + mh + 8), when, font=_font(24), fill=BLACK)
+            draw.text(
+                (pad_x, matchup_y + mh + 8),
+                when,
+                font=_font(28 if full_page else 24),
+                fill=BLACK,
+            )
 
     elif current and current.is_final and (nxt is None or nxt.event_id != current.event_id):
         # Final result large, next game below
@@ -440,9 +447,23 @@ def _draw_team_panel(
                     fill=ORANGE,
                 )
 
-    # Divider between halves
-    if top == 0:
+    # Divider between halves (split layout only)
+    if top == 0 and height == HALF:
         draw.line((0, HALF - 1, WIDTH, HALF - 1), fill=BLACK, width=2)
+
+
+def _live_focus_board(boards: list[TeamBoard]) -> TeamBoard | None:
+    """Return the board that should take the full page while live.
+
+    Prefers Cubs when multiple games are live; otherwise the first live board.
+    """
+    live = [b for b in boards if b.is_live]
+    if not live:
+        return None
+    for board in live:
+        if board.team_id == "cubs":
+            return board
+    return live[0]
 
 
 def render_board(snapshot: BoardSnapshot, timezone: str) -> Image.Image:
@@ -453,15 +474,18 @@ def render_board(snapshot: BoardSnapshot, timezone: str) -> Image.Image:
         draw.text((40, 200), "No teams configured", font=_font(36), fill=BLACK)
         return img
 
-    # Support 1 or 2 teams (plan is two halves)
+    live = _live_focus_board(boards)
+    if live is not None:
+        # Full-page live view (Cubs wins if both are live)
+        _draw_team_panel(img, live, 0, HEIGHT, timezone)
+        return img
+
+    # Idle / final: one team full page, or two-team split
     if len(boards) == 1:
         _draw_team_panel(img, boards[0], 0, HEIGHT, timezone)
     else:
         _draw_team_panel(img, boards[0], 0, HALF, timezone)
         _draw_team_panel(img, boards[1], HALF, HALF, timezone)
-        if len(boards) > 2:
-            # Extra teams ignored on this panel size
-            pass
     return img
 
 
